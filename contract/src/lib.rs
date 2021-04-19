@@ -1,13 +1,3 @@
-//! This contract implements simple counter backed by storage on blockchain.
-//!
-//! The contract provides methods to [increment] / [decrement] counter and
-//! [get it's current value][get_num] or [reset].
-//!
-//! [increment]: struct.Counter.html#method.increment
-//! [decrement]: struct.Counter.html#method.decrement
-//! [get_num]: struct.Counter.html#method.get_num
-//! [reset]: struct.Counter.html#method.reset
-
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{env, near_bindgen};
 use near_sdk::collections::UnorderedSet;
@@ -15,11 +5,9 @@ use near_sdk::collections::UnorderedSet;
 #[global_allocator]
 static ALLOC: near_sdk::wee_alloc::WeeAlloc = near_sdk::wee_alloc::WeeAlloc::INIT;
 
-//improve readability
 pub type HashedVector = Vec<u8>;
 const HEX_CHARS_UPPER: &[u8; 16] = b"0123456789ABCDEF";
 
-//implementation entry point
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct HashStorage {
@@ -62,8 +50,6 @@ mod tests {
     // fn byte_array_def() -> Vec<u8> {
     //     vec![0x44, 0x45, 0x46]
     // }
-    // part of writing unit tests is setting up a mock context
-    // this is also a useful list to peek at when wondering what's available in env::*
     fn get_context(input: Vec<u8>, is_view: bool) -> VMContext {
         VMContext {
             current_account_id: "alice.testnet".to_string(),
