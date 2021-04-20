@@ -5,7 +5,8 @@ use near_sdk::collections::UnorderedSet;
 #[global_allocator]
 static ALLOC: near_sdk::wee_alloc::WeeAlloc = near_sdk::wee_alloc::WeeAlloc::INIT;
 
-pub type HashedVector = Vec<u8>;
+pub type HashedVector = String;
+
 const HEX_CHARS_UPPER: &[u8; 16] = b"0123456789ABCDEF";
 
 #[near_bindgen]
@@ -14,25 +15,34 @@ pub struct HashStorage {
     hash_storage: UnorderedSet<HashedVector>
 }
 
+impl Default for HashStorage {
+    fn default() -> Self {
+        HashStorage{ hash_storage: UnorderedSet::new(vec![]) }
+    }
+}
+
 #[near_bindgen]
 impl HashStorage {
+    pub fn is_hash_exist(&self, hash: String) -> bool {
+        self.hash_storage.contains(&hash)
+    }
+
     pub fn store_hash(&mut self, raw_vector: Vec<u8>) -> String {
         if raw_vector.len() == 0 {
             env::panic(b"Vec is null.");
         }
         let hashed_vector = env::sha256(&*raw_vector);
-        let is_hash_exist = self.hash_storage.contains(&hashed_vector);
+        let mut stringified_hash = String::with_capacity(hashed_vector.len() * 2);
+        for n in hashed_vector.iter() {
+            stringified_hash.push(HEX_CHARS_UPPER[(n >> 4) as usize] as char);
+            stringified_hash.push(HEX_CHARS_UPPER[(n & 0x0F) as usize] as char);
+        }
+        let is_hash_exist = self.hash_storage.contains(&stringified_hash);
 
         if is_hash_exist {
             env::panic(b"Hash already exist.");
         } else {
-            self.hash_storage.insert(&hashed_vector);
-            //I dont think this is a correct way
-            let mut stringified_hash = String::with_capacity(hashed_vector.len() * 2);
-            for n in hashed_vector.iter() {
-                stringified_hash.push(HEX_CHARS_UPPER[(n >> 4) as usize] as char);
-                stringified_hash.push(HEX_CHARS_UPPER[(n & 0x0F) as usize] as char);
-            }
+            self.hash_storage.insert(&stringified_hash);
             stringified_hash
         }
     }
@@ -47,6 +57,7 @@ mod tests {
     fn byte_array_abc() -> Vec<u8> {
         vec![0x41, 0x42, 0x43]
     }
+
     // fn byte_array_def() -> Vec<u8> {
     //     vec![0x44, 0x45, 0x46]
     // }
@@ -81,6 +92,7 @@ mod tests {
         let mut contract = HashStorage { hash_storage: UnorderedSet::new(vec![]) };
         let _store_hash = contract.store_hash(vec![]);
     }
+
     #[test]
     fn hash_array() {
         let context = get_context(vec![], false);
@@ -88,8 +100,9 @@ mod tests {
         let mut contract = HashStorage { hash_storage: UnorderedSet::new(vec![]) };
         let vector_abc = byte_array_abc();
         let store_hash_result = contract.store_hash(vector_abc);
-        assert!(store_hash_result.len() > 0,"Store hash result string length less than 1.");
+        assert!(store_hash_result.len() > 0, "Store hash result string length less than 1.");
     }
+
     #[test]
     #[should_panic(
     expected = r#"Hash already exist."#
@@ -100,10 +113,17 @@ mod tests {
         let mut contract = HashStorage { hash_storage: UnorderedSet::new(vec![]) };
         let vector_abc = byte_array_abc();
         let store_hash_result = contract.store_hash(Vec::from(&*vector_abc));
-        assert!(store_hash_result.len() > 0,"Store hash result string length less than 1.");
+        assert!(store_hash_result.len() > 0, "Store hash result string length less than 1.");
         contract.store_hash(vector_abc);
     }
-
-
-
+    #[test]
+    fn is_hash_exist(){
+        let context = get_context(vec![], false);
+        testing_env!(context);
+        let mut contract = HashStorage { hash_storage: UnorderedSet::new(vec![]) };
+        let vector_abc = byte_array_abc();
+        let store_hash_result = contract.store_hash(Vec::from(&*vector_abc));
+        let hash_exists = contract.is_hash_exist(store_hash_result);
+        assert_eq!(hash_exists, true)
+    }
 }
